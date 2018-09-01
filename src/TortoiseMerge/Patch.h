@@ -39,7 +39,7 @@ public:
 
 	BOOL		OpenUnifiedDiffFile(const CString& filename);
 	int			PatchFile(const int strip, const int nIndex, const CString& sPath, const CString& sSavePath = L"", const CString& sBaseFile = L"", const bool force = false);
-	int			GetNumberOfFiles() const  {return m_arFileDiffs.GetCount();}
+	int			GetNumberOfFiles() const  {return (int)m_arFileDiffs.size();}
 	CString		GetFilename(int nIndex);
 	CString		GetRevision(int nIndex);
 	CString		GetFilename2(int nIndex);
@@ -84,10 +84,10 @@ protected:
 		CString					sRevision;
 		CString					sFilePath2;
 		CString					sRevision2;
-		CStdArrayV<Chunk*>		chunks;
+		std::vector<std::unique_ptr<Chunk>>	chunks;
 	};
 
-	CStdArrayV<Chunks*>			m_arFileDiffs;
+	std::vector<std::unique_ptr<Chunks>>	m_arFileDiffs;
 	CString						m_sErrorMessage;
 	CFileTextLines::UnicodeType m_UnicodeType;
 
@@ -102,6 +102,6 @@ protected:
 
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 public:
-	const CStdArrayV<Chunk*>& GetChunks(int index) const { return m_arFileDiffs.GetAt(index)->chunks; };
+	const auto& GetChunks(int index) const { return m_arFileDiffs[index]->chunks; };
 #endif
 };
