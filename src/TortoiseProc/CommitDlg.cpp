@@ -1632,7 +1632,7 @@ void CCommitDlg::OnBnClickedShowunversioned()
 				m_ListCtrl.GetStatus(&this->m_pathList,false,false,true);
 		}
 		m_ListCtrl.StoreScrollPos();
-		m_ListCtrl.Show(dwShow, 0, true, dwShow & ~(CTGitPath::LOGACTIONS_UNVER), true);
+		m_ListCtrl.Show(dwShow, dwShow & ~(CTGitPath::LOGACTIONS_UNVER), true, FALSE, true);
 		UpdateCheckLinks();
 	}
 }
