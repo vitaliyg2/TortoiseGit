@@ -1331,13 +1331,16 @@ UINT CCommitDlg::StatusThread()
 
 	success=m_ListCtrl.GetStatus(pList);
 
+	m_ListCtrl.UpdateFileList(CGitStatusListCtrl::FILELIST_LOCALCHANGESIGNORED, true, pList);
+
 	//m_ListCtrl.UpdateFileList(git_revnum_t(GIT_REV_ZERO));
 	if(this->m_bShowUnversioned)
-		m_ListCtrl.UpdateFileList(CGitStatusListCtrl::FILELIST_UNVER,true,pList);
+		m_ListCtrl.UpdateFileList(CGitStatusListCtrl::FILELIST_UNVER, true, pList);
 
 	m_ListCtrl.CheckIfChangelistsArePresent(false);
 
-	DWORD dwShow = GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS | GITSLC_SHOWINCHANGELIST | GITSLC_SHOWDIRECTFILES;
+	DWORD dwShow = GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS | GITSLC_SHOWINCHANGELIST |
+		GITSLC_SHOWDIRECTFILES | GITSLC_SHOWASSUMEVALID | GITSLC_SHOWSKIPWORKTREE;
 	dwShow |= DWORD(m_regAddBeforeCommit) ? GITSLC_SHOWUNVERSIONED : 0;
 	if (success)
 	{
@@ -1346,7 +1349,7 @@ UINT CCommitDlg::StatusThread()
 		else*/
 		{
 			DWORD dwCheck = m_bSelectFilesForCommit ? dwShow : 0;
-			dwCheck &=~(CTGitPath::LOGACTIONS_UNVER); //don't check unversion file default.
+			dwCheck &= ~(CTGitPath::LOGACTIONS_UNVER | CTGitPath::LOGACTIONS_ASSUMEVALID | CTGitPath::LOGACTIONS_SKIPWORKTREE); //don't check unversion file default.
 			m_ListCtrl.Show(dwShow, dwCheck);
 		}
 
@@ -1378,9 +1381,10 @@ UINT CCommitDlg::StatusThread()
 		{
 			m_bShowUnversioned = TRUE;
 			GetDlgItem(IDC_SHOWUNVERSIONED)->SendMessage(BM_SETCHECK, BST_CHECKED);
-			dwShow = (DWORD)(GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS | GITSLC_SHOWUNVERSIONED);
-			m_ListCtrl.UpdateFileList(CGitStatusListCtrl::FILELIST_UNVER);
-			m_ListCtrl.Show(dwShow,dwShow&(~CTGitPath::LOGACTIONS_UNVER));
+			dwShow = (DWORD)(GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS | GITSLC_SHOWUNVERSIONED |
+				GITSLC_SHOWASSUMEVALID | GITSLC_SHOWSKIPWORKTREE);
+			m_ListCtrl.UpdateFileList(CGitStatusListCtrl::FILELIST_UNVER | CGitStatusListCtrl::FILELIST_LOCALCHANGESIGNORED);
+			m_ListCtrl.Show(dwShow, dwShow & (~CTGitPath::LOGACTIONS_UNVER | CTGitPath::LOGACTIONS_ASSUMEVALID | CTGitPath::LOGACTIONS_SKIPWORKTREE));
 		}
 	}
 
@@ -1627,12 +1631,13 @@ void CCommitDlg::OnBnClickedShowunversioned()
 		if(dwShow & GITSLC_SHOWUNVERSIONED)
 		{
 			if (m_bWholeProject || m_bWholeProject2)
-				m_ListCtrl.GetStatus(nullptr, false, false, true);
+				m_ListCtrl.GetStatus(nullptr, false, false, true, true);
 			else
-				m_ListCtrl.GetStatus(&this->m_pathList,false,false,true);
+				m_ListCtrl.GetStatus(&this->m_pathList,false,false,true, true);
 		}
 		m_ListCtrl.StoreScrollPos();
-		m_ListCtrl.Show(dwShow, dwShow & ~(CTGitPath::LOGACTIONS_UNVER), true, FALSE, true);
+		m_ListCtrl.Show(dwShow, dwShow & ~(CTGitPath::LOGACTIONS_UNVER |
+			CTGitPath::LOGACTIONS_ASSUMEVALID | CTGitPath::LOGACTIONS_SKIPWORKTREE), true, FALSE, true);
 		UpdateCheckLinks();
 	}
 }
@@ -2617,9 +2622,9 @@ void CCommitDlg::OnBnClickedWholeProject()
 	if (!m_bBlock)
 	{
 		if (m_bWholeProject || m_bWholeProject2)
-			m_ListCtrl.GetStatus(nullptr, true, false, true);
+			m_ListCtrl.GetStatus(nullptr, true, false, true, true);
 		else
-			m_ListCtrl.GetStatus(&this->m_pathList,true,false,true);
+			m_ListCtrl.GetStatus(&this->m_pathList,true,false,true, true);
 
 		m_regShowWholeProject = m_bWholeProject;
 
@@ -2630,7 +2635,8 @@ void CCommitDlg::OnBnClickedWholeProject()
 			dwShow &= ~GITSLC_SHOWUNVERSIONED;
 
 		m_ListCtrl.StoreScrollPos();
-		m_ListCtrl.Show(dwShow, dwShow & ~(CTGitPath::LOGACTIONS_UNVER), true);
+		m_ListCtrl.Show(dwShow, dwShow & ~(CTGitPath::LOGACTIONS_UNVER |
+			CTGitPath::LOGACTIONS_ASSUMEVALID | CTGitPath::LOGACTIONS_SKIPWORKTREE), true);
 		UpdateCheckLinks();
 	}
 
