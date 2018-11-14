@@ -1044,21 +1044,35 @@ void CGitStatusListCtrl::AddEntry(size_t arStatusArrayIndex, CTGitPath * GitPath
 	if (GitPath->m_Checked)
 		m_nSelected++;
 
-	if ((GitPath->m_Action & CTGitPath::LOGACTIONS_SKIPWORKTREE) || (GitPath->m_Action & CTGitPath::LOGACTIONS_ASSUMEVALID))
-		SetItemGroup(listIndex, 3);
-	else if (GitPath->m_Action & CTGitPath::LOGACTIONS_IGNORE)
-		SetItemGroup(listIndex, 2);
-	else if( GitPath->m_Action & CTGitPath::LOGACTIONS_UNVER)
-		SetItemGroup(listIndex,1);
-	else
-		SetItemGroup(listIndex, GitPath->m_ParentNo&(PARENT_MASK|MERGE_MASK));
+	SetItemGroup(listIndex, GitPath);
 }
 
-bool CGitStatusListCtrl::SetItemGroup(int item, int groupindex)
+bool CGitStatusListCtrl::SetItemGroup(int item, CTGitPath * GitPath)
 {
 	CAutoWriteLock locker(m_guard);
 //	if (!(m_dwContextMenus & SVNSLC_POPCHANGELISTS))
 //		return false;
+
+	std::map<CString, int>::const_iterator it;
+	auto pathChangelistIt = m_pathToChangelist.find(GitPath->GetGitPathString());
+	if (pathChangelistIt != m_pathToChangelist.cend())
+		it = m_changelists.find(pathChangelistIt->second);
+	else
+		it = m_changelists.cend();
+
+	int groupindex;
+
+	if (it != m_changelists.cend())
+		groupindex = it->second;
+	else if ((GitPath->m_Action & CTGitPath::LOGACTIONS_SKIPWORKTREE) || (GitPath->m_Action & CTGitPath::LOGACTIONS_ASSUMEVALID))
+		groupindex = 3;
+	else if (GitPath->m_Action & CTGitPath::LOGACTIONS_IGNORE)
+		groupindex = 2;
+	else if (GitPath->m_Action & CTGitPath::LOGACTIONS_UNVER)
+		groupindex = 1;
+	else
+		groupindex = GitPath->m_ParentNo&(PARENT_MASK | MERGE_MASK);
+
 	if (groupindex < 0)
 		return false;
 	LVITEM i = {0};
@@ -3572,7 +3586,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 	if (((m_dwShow & GITSLC_SHOWUNVERSIONED) && !m_UnRevFileList.IsEmpty()) ||
 		((m_dwShow & GITSLC_SHOWIGNORED) && !m_IgnoreFileList.IsEmpty()) ||
 		(m_dwShow & (GITSLC_SHOWASSUMEVALID | GITSLC_SHOWSKIPWORKTREE) && !m_LocalChangesIgnoredFileList.IsEmpty()) ||
-		max>0 || bForce)
+		max > 0 || !m_pathToChangelist.empty() || bForce)
 	{
 		bHasGroups = true;
 	}
@@ -3656,7 +3670,6 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 		}
 	}
 
-#if 0
 	m_bHasIgnoreGroup = false;
 
 	// now add the items which don't belong to a group
@@ -3670,9 +3683,9 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 	grp.uAlign = LVGA_HEADER_LEFT;
 	InsertGroup(groupindex++, &grp);
 
-	for (auto it = m_changelists.cbegin(); it != m_changelists.cend(); ++it)
+	for (auto it = m_changelists.begin(); it != m_changelists.cend(); ++it)
 	{
-		if (it->first.Compare(SVNSLC_IGNORECHANGELIST)!=0)
+		if (it->first.Compare(GITSLC_IGNORECHANGELIST)!=0)
 		{
 			LVGROUP grp = {0};
 			grp.cbSize = sizeof(LVGROUP);
@@ -3690,19 +3703,18 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 	if (m_bHasIgnoreGroup)
 	{
 		// and now add the group 'ignore-on-commit'
-		std::map<CString,int>::iterator it = m_changelists.find(SVNSLC_IGNORECHANGELIST);
+		std::map<CString,int>::iterator it = m_changelists.find(GITSLC_IGNORECHANGELIST);
 		if (it != m_changelists.end())
 		{
 			grp.cbSize = sizeof(LVGROUP);
 			grp.mask = LVGF_ALIGN | LVGF_GROUPID | LVGF_HEADER;
-			wcsncpy_s(groupname, 1024, SVNSLC_IGNORECHANGELIST, 1023);
+			wcsncpy_s(groupname, 1024, GITSLC_IGNORECHANGELIST, 1023);
 			grp.pszHeader = groupname;
 			grp.iGroupId = groupindex;
 			grp.uAlign = LVGA_HEADER_LEFT;
 			it->second = InsertGroup(groupindex, &grp);
 		}
 	}
-#endif
 	return bHasGroups;
 }
 
