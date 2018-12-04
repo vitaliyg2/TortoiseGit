@@ -411,6 +411,7 @@ BOOL CGitStatusListCtrl::GetStatus ( const CTGitPathList* pathList
 			if (!(*pathList)[i].IsDirectory())
 				m_setDirectFiles.insert((*pathList)[i].GetGitPathString());
 	}
+	LoadChangelists();
 
 #if 0
 	int refetchcounter = 0;
@@ -2467,15 +2468,20 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 #endif
 			case IDGITLC_CREATEIGNORECS:
 				MoveToChangelist(GITSLC_IGNORECHANGELIST);
+				SaveChangelists();
 				break;
 			case IDGITLC_REMOVEFROMCS:
 				RemoveFromChangelist();
+				SaveChangelists();
 				break;
 			case IDGITLC_CREATECS:
 			{
 				CCreateChangelistDlg dlg;
 				if (dlg.DoModal() == IDOK)
+				{
 					MoveToChangelist(dlg.m_sName);
+					SaveChangelists();
+				}
 			}
 				break;
 			default:
@@ -2500,6 +2506,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 					if (!sChangelist.IsEmpty())
 					{
 						MoveToChangelist(sChangelist);
+						SaveChangelists();
 					}
 					SetRedraw(TRUE);
 				}
@@ -3943,6 +3950,7 @@ void CGitStatusListCtrl::Clear()
 	this->m_arListArray.clear();
 	this->m_arStatusArray.clear();
 	this->m_changelists.clear();
+	this->m_pathToChangelist.clear();
 }
 
 bool CGitStatusListCtrl::CheckMultipleDiffs()
@@ -4527,3 +4535,84 @@ ULONG CGitStatusListCtrl::GetGestureStatus(CPoint /*ptTouch*/)
 {
 	return 0;
 }
+
+BOOL CGitStatusListCtrl::LoadChangelists()
+{
+	CString changelistFLP = g_Git.m_CurrentDir + L"\\.tgitchangelist";
+	if (!PathFileExists(changelistFLP))
+		return false;
+
+	CString strLine, changelistName;
+	try
+	{
+		CStdioFile file(changelistFLP, CFile::typeText | CFile::modeRead | CFile::shareDenyWrite);
+		changelistName = GITSLC_IGNORECHANGELIST;
+		while (file.ReadString(strLine))
+		{
+			strLine = strLine.Trim();
+			if (strLine.IsEmpty())
+				continue;
+
+			if ((strLine.Left(1) == L'<') && (strLine.Right(1) == L'>'))
+			{  //this is changelist name
+				changelistName = strLine.Mid(1, strLine.GetLength() - 2);
+				m_changelists.insert_or_assign(changelistName, 0);
+			}
+			else //this is git path
+				m_pathToChangelist.insert_or_assign(strLine, changelistName);
+		}
+		file.Close();
+	}
+	catch (CFileException* pE)
+	{
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException loading changelists file\n");
+		pE->Delete();
+		MessageBox(L"Unable to load changelists", L"TortoiseGit", MB_ICONERROR);
+		return false;
+	}
+
+	return true;
+}
+
+BOOL CGitStatusListCtrl::SaveChangelists()
+{
+	std::map<CString, std::set<CString>> changelistToPath;
+	for (auto it = m_pathToChangelist.cbegin(); it != m_pathToChangelist.cend(); ++it)
+	{
+		auto itChangelist = changelistToPath.find(it->second);
+		if (itChangelist == changelistToPath.end())
+		{
+			std::set<CString> paths;
+			paths.insert(it->first);
+			changelistToPath.insert(std::make_pair(it->second, paths));
+		}
+		else
+			itChangelist->second.insert(it->first);
+	}
+
+	try
+	{
+		CStdioFile file(g_Git.m_CurrentDir + L"\\.tgitchangelist", CFile::typeText | CFile::modeCreate | CFile::modeWrite | CFile::shareDenyWrite);
+		for (auto itChangelist = changelistToPath.cbegin(); itChangelist != changelistToPath.cend(); ++itChangelist)
+		{
+			if (itChangelist != changelistToPath.cbegin())
+				file.WriteString(L"\n");
+
+			file.WriteString(L"<" + itChangelist->first + L">\n");
+			for (auto itPath = itChangelist->second.cbegin(); itPath != itChangelist->second.cend(); ++itPath)
+				file.WriteString(*itPath + L"\n");
+		}
+
+		file.Close();
+	}
+	catch (CFileException* pE)
+	{
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException saving changelists file\n");
+		pE->Delete();
+		MessageBox(L"Unable to save changelists", L"TortoiseGit", MB_ICONERROR);
+		return false;
+	}
+
+	return true;
+}
+

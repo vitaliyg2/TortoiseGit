@@ -724,6 +724,8 @@ private:
 
 	void MoveToChangelist(const CString& name);
 	void RemoveFromChangelist();
+	BOOL LoadChangelists();
+	BOOL SaveChangelists();
 
 	virtual void PreSubclassWindow() override;
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override;
