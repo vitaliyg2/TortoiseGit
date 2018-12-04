@@ -704,7 +704,7 @@ private:
 	/// If the point is not over a group header, -1 is returned
 	int GetGroupFromPoint(POINT * ppt);
 	/// Returns the number of change lists the selection has
-	size_t GetNumberOfChangelistsInSelection();
+	bool HasChangelistInSelection();
 
 	// Determines group and puts the item to the group
 	bool SetItemGroup(int item, CTGitPath * GitPath);
@@ -721,6 +721,9 @@ private:
 	bool CheckMultipleDiffs();
 
 	void DeleteSelectedFiles();
+
+	void MoveToChangelist(const CString& name);
+	void RemoveFromChangelist();
 
 	virtual void PreSubclassWindow() override;
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override;
