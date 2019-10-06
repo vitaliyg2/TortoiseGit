@@ -234,6 +234,7 @@ protected:
 	afx_msg void OnBnClickedCommitAmend();
 	afx_msg void OnBnClickedCommitMessageOnly();
 	afx_msg void OnBnClickedWholeProject();
+	afx_msg void OnBnClickedKeepChangelists();
 	afx_msg void OnScnUpdateUI(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnStnClickedViewPatch();
 	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);

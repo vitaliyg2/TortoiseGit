@@ -61,7 +61,7 @@ CCommitDlg::CCommitDlg(CWnd* pParent /*=nullptr*/)
 	, m_pThread(nullptr)
 	, m_bWholeProject(FALSE)
 	, m_bWholeProject2(FALSE)
-	, m_bKeepChangeList(TRUE)
+	, m_bKeepChangeList(FALSE)
 	, m_bDoNotAutoselectSubmodules(FALSE)
 	, m_itemsCount(0)
 	, m_bSelectFilesForCommit(TRUE)
@@ -152,6 +152,7 @@ BEGIN_MESSAGE_MAP(CCommitDlg, CResizableStandAloneDialog)
 	ON_BN_CLICKED(IDC_COMMIT_AMEND, &CCommitDlg::OnBnClickedCommitAmend)
 	ON_BN_CLICKED(IDC_COMMIT_MESSAGEONLY, &CCommitDlg::OnBnClickedCommitMessageOnly)
 	ON_BN_CLICKED(IDC_WHOLE_PROJECT, &CCommitDlg::OnBnClickedWholeProject)
+	ON_BN_CLICKED(IDC_KEEPLISTS, &CCommitDlg::OnBnClickedKeepChangelists)
 	ON_COMMAND(ID_FOCUS_MESSAGE,&CCommitDlg::OnFocusMessage)
 	ON_COMMAND(ID_FOCUS_FILELIST, OnFocusFileList)
 	ON_STN_CLICKED(IDC_VIEW_PATCH, &CCommitDlg::OnStnClickedViewPatch)
@@ -231,7 +232,7 @@ BOOL CCommitDlg::OnInitDialog()
 
 	m_History.SetMaxHistoryItems(CRegDWORD(L"Software\\TortoiseGit\\MaxHistoryItems", 25));
 
-	m_regKeepChangelists = CRegDWORD(L"Software\\TortoiseGit\\KeepChangeLists", FALSE);
+	m_regKeepChangelists = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\KeepChangeLists\\" + regPath, FALSE);
 	m_bKeepChangeList = m_regKeepChangelists;
 
 	m_regDoNotAutoselectSubmodules = CRegDWORD(L"Software\\TortoiseGit\\DoNotAutoselectSubmodules", FALSE);
@@ -1171,8 +1172,11 @@ void CCommitDlg::OnOK()
 					bCloseCommitDlg = false;
 				}
 			}
-			m_ListCtrl.PruneChangelists();
-			m_ListCtrl.SaveChangelists();
+			if (!m_bKeepChangeList)
+			{
+				m_ListCtrl.PruneChangelists();
+				m_ListCtrl.SaveChangelists();
+			}
 		}
 
 		if (progress.m_GitStatus || m_PostCmd == GIT_POSTCOMMIT_CMD_RECOMMIT)
@@ -1226,10 +1230,7 @@ void CCommitDlg::OnOK()
 
 	UpdateData();
 	m_regAddBeforeCommit = m_bShowUnversioned;
-	m_regKeepChangelists = m_bKeepChangeList;
 	m_regDoNotAutoselectSubmodules = m_bDoNotAutoselectSubmodules;
-	if (!GetDlgItem(IDC_KEEPLISTS)->IsWindowEnabled())
-		m_bKeepChangeList = FALSE;
 	InterlockedExchange(&m_bBlock, FALSE);
 
 	if (!m_sLogMessage.IsEmpty())
@@ -2630,6 +2631,13 @@ void CCommitDlg::OnBnClickedWholeProject()
 	}
 
 	SetDlgTitle();
+}
+
+void CCommitDlg::OnBnClickedKeepChangelists()
+{
+	m_tooltips.Pop();	// hide the tooltips
+	UpdateData();
+	m_regKeepChangelists = m_bKeepChangeList;
 }
 
 void CCommitDlg::OnFocusMessage()
