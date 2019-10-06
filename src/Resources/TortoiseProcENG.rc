@@ -818,10 +818,10 @@ BEGIN
     GROUPBOX        "Commit",IDC_COMMITGROUP,7,145,287,114
     CONTROL         "&Use auto-completion of file paths and keywords",IDC_AUTOCOMPLETION,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,159,271,10
-    LTEXT           "&Timeout in seconds to stop the auto-completion parsing",IDC_AUTOCOMPLETIONTIMEOUTLABEL,14,175,231,8,SS_NOTIFY
+    LTEXT           "&Timeout in seconds to stop the auto-completion parsing",IDC_AUTOCOMPLETIONTIMEOUTLABEL,14,177,231,8,SS_NOTIFY
     EDITTEXT        IDC_AUTOCOMPLETIONTIMEOUT,252,175,31,12,ES_AUTOHSCROLL | ES_NUMBER,WS_EX_RIGHT
-    LTEXT           "Max. items to keep in the log message history",IDC_MAXHISTORYLABEL,14,193,226,8,SS_NOTIFY
-    EDITTEXT        IDC_MAXHISTORY,252,190,31,14,ES_AUTOHSCROLL | ES_NUMBER,WS_EX_RIGHT
+    LTEXT           "Max. items to keep in the log message history",IDC_MAXHISTORYLABEL,14,192,231,8,SS_NOTIFY
+    EDITTEXT        IDC_MAXHISTORY,252,190,31,12,ES_AUTOHSCROLL | ES_NUMBER,WS_EX_RIGHT
     CONTROL         "Select items automatically",IDC_SELECTFILESONCOMMIT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,207,270,10
     CONTROL         "Do not auto-select ""missing"" files (deleted, but unstaged)",IDC_NOAUTOSELECTMISSING,
